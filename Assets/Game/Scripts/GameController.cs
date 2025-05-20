@@ -5,9 +5,9 @@ using UnityEngine;
 
 public class GameController : MonoBehaviour
 {
-    [SerializeField] private TouchController _touchController;
+    //[SerializeField] private TouchController _touchController;
     [SerializeField] private PlayerBoxer _playerBoxer;
-    
+    public PlayerBoxer playerBoxer => _playerBoxer;
 
 
     public static Action attackAction;

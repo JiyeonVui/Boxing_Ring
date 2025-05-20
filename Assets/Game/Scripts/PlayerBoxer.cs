@@ -12,34 +12,28 @@ public class PlayerBoxer : MonoBehaviour
     public Transform[] enemies;
 
     private Vector3 moveDir;
-    private Transform currentTarget;
+
     private bool isBlocking = false;
 
     [Header("Attack Settings")]
     public float comboMaxDelay = 0.6f;
     public int maxCombo = 3;
-    private int currentCombo = 0;
-    private float lastPunchTime = 0f;
 
-    [Header("Stamina Settings")]
-    public int maxStamina = 5;
-    public float staminaRecoveryDelay = 2f;
-    public float staminaRecoveryRate = 1f; // mỗi giây
-    private float currentStamina;
-    private float lastPunchStaminaTime;
 
     private bool isMoving = false;
     private string currentAnimation = string.Empty;
 
     private int currentComboIndex = 0;
-    private bool inputBuffered = false;
-
-    private float timeSinceLastPunch = 0f;
 
     private bool isAttacking = false;
     private bool isWaitingAttack = false;
     private Coroutine CorStopCombo;
+    private Coroutine CorHurting;
+
+
     private bool isDead = false;
+    private bool isHurting = false;
+
 
     [Header("Player Parameters")]
     [SerializeField] private float hp;
@@ -48,9 +42,10 @@ public class PlayerBoxer : MonoBehaviour
     [SerializeField] private DamageDealer _rightPunch;
     [SerializeField] private DamageDealer _leftPunch;
 
+
+
     private void Start()
     {
-        currentStamina = maxStamina;
         _rightPunch.SetWeaponDamage(attackDamage);
         _leftPunch.SetWeaponDamage(attackDamage);
         hp = maxHp;
@@ -59,66 +54,73 @@ public class PlayerBoxer : MonoBehaviour
 
     private void Awake()
     {
-        GameController.movingAction += MoveInDirection;
-        GameController.stopAction += StopMoving;
         GameController.attackAction += OnAttackInput;
         GameController.holdAction += HandleBlocking;
     }
 
     private void OnDestroy()
     {
-        GameController.movingAction -= MoveInDirection;
-        GameController.stopAction -= StopMoving;
         GameController.attackAction -= OnAttackInput;
         GameController.holdAction -= HandleBlocking;
-    }
-
-    private void Update()
-    {
-        timeSinceLastPunch += Time.deltaTime;
-        HandleComboReset();
-        RecoverStamina();
     }
 
     public void TakeDamage(float damage)
     {
         if (isBlocking)
         {
-            damage /= 2; // giảm một nửa sát thương khi đang block
+            ; // giảm một nửa sát thương khi đang block
+            hp -= damage / 2;
         }
-        hp -= damage;
-        if (hp <= 0)
+        else
+        {
+            // change hurt animation
+
+            hp -= damage;
+        }
+        
+        if(hp > 0)
+        {
+            OnHurt();
+        }
+        else
         {
             Die();
+        }
+    }
+
+    public void OnHurt()
+    {
+        // change hurt animation
+        isHurting = true;
+        ChangeAnimation(Constant.ANIM_HEAD_HURT, 0.1f, 0.1f);
+
+        if(CorHurting != null)
+        {
+            StopCoroutine(CorHurting);
+            CorHurting = null;
+        }
+
+        CorHurting = StartCoroutine(IEHurt());
+
+        IEnumerator IEHurt()
+        {
+            yield return new WaitForSeconds(0.25f);
+            isHurting = false;
+            CorHurting = null;
         }
     }
 
     public void Die()
     {
         isDead = true;
+        ChangeAnimation(Constant.ANIM_DEATH, 0.1f, 0.1f);
     }
 
-    private void HandleComboReset()
-    {
-        if (Time.time - lastPunchTime > comboMaxDelay)
-        {
-            currentCombo = 0;
-        }
-    }
-    private void RecoverStamina()
-    {
-        if (currentStamina < maxStamina && Time.time - lastPunchStaminaTime > staminaRecoveryDelay)
-        {
-            Debug.LogError("RecoverStamina " + currentStamina);
-            Debug.LogError("staminaRecoveryRate " + (Time.time - lastPunchStaminaTime) + " "+ staminaRecoveryDelay);
-            currentStamina += staminaRecoveryRate * Time.deltaTime;
-            currentStamina = Mathf.Clamp(currentStamina, 0, maxStamina);
-        }
-    }
+
 
     public void OnAttackInput()
     {
-        if (isDead) return;
+        if (isDead || isHurting) return;
         isAttacking = true;
         if (!isWaitingAttack)
         {
@@ -198,7 +200,6 @@ public class PlayerBoxer : MonoBehaviour
         _rightPunch.StartDealDamage();
         _leftPunch.StartDealDamage();
 
-        timeSinceLastPunch = 0f;
     }
 
     IEnumerator IEStopCombo()
@@ -229,7 +230,7 @@ public class PlayerBoxer : MonoBehaviour
 
     private void HandleBlocking(bool isBlock)
     {
-        if (isDead) return;
+        if (isDead || isHurting) return;
         isBlocking = isBlock;
         if (isBlock)
         {
@@ -269,52 +270,6 @@ public class PlayerBoxer : MonoBehaviour
             
     }
 
-    public void StopMoving()
-    {
-        if (isDead) return;
-        Debug.LogError("StopMoving");
-        moveDir = Vector3.zero;
-        ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
-        isMoving = false;
-        FaceNearestEnemy();
-    }
-
-    void FaceNearestEnemy()
-    {
-        if (enemies.Length == 0) return;
-
-        float minDist = Mathf.Infinity;
-        Transform nearest = null;
-
-        foreach (Transform enemy in enemies)
-        {
-            float dist = Vector3.Distance(transform.position, enemy.position);
-            if (dist < minDist)
-            {
-                minDist = dist;
-                nearest = enemy;
-            }
-        }
-
-        if (nearest != null)
-        {
-            Vector3 dir = (nearest.position - transform.position).normalized;
-            dir.y = 0;
-            if (dir != Vector3.zero)
-                transform.rotation = Quaternion.LookRotation(dir);
-            currentTarget = nearest;
-        }
-    }
-
-    public void Punch()
-    {
-        if (currentTarget != null)
-        {
-            Vector3 dir = (currentTarget.position - transform.position).normalized;
-            dir.y = 0;
-            transform.rotation = Quaternion.LookRotation(dir);
-        }
-    }
 
     public void ChangeAnimation(string animation, float crossFade = 0.2f, float time = 0)
     {
@@ -340,7 +295,6 @@ public class PlayerBoxer : MonoBehaviour
                 currentAnimation = animation;
                 
                 animator.CrossFade(animation, crossFade);
-                
             }
         }
     }

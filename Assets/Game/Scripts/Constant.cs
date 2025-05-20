@@ -19,4 +19,7 @@ public static class Constant
     public const string ANIM_WALK = "Walk";
     public const string ANIM_RUNNING = "Running";
 
+    public const string ANIM_HEAD_HURT = "Head hit";
+    public const string ANIM_DEATH = "Knocked Out";
+
 }
