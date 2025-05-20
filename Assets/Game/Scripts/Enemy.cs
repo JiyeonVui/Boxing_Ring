@@ -31,6 +31,11 @@ public class Enemy : MonoBehaviour
     private float stateTimer;
     private float decisionTimer;
     private string currentAnimation = string.Empty;
+
+    [SerializeField] private DamageDealer _punch_1;
+    [SerializeField] private DamageDealer _punch_2;
+
+    private bool isHurting = false;
     void Start()
     {
         player = GameController.Instance.playerBoxer.transform;
@@ -87,6 +92,8 @@ public class Enemy : MonoBehaviour
     void ExecuteAttack(int attackType)
     {
         currentState = AIState.Attacking;
+        _punch_1.StartDealDamage();
+        _punch_2.StartDealDamage();
         switch (attackType)
         {
             case 1:
@@ -127,6 +134,7 @@ public class Enemy : MonoBehaviour
 
     void UpdateState()
     {
+
         if (currentState == AIState.Holding || currentState == AIState.Attacking || currentState == AIState.Recovering)
         {
             stateTimer -= Time.deltaTime;
@@ -156,21 +164,31 @@ public class Enemy : MonoBehaviour
         {
             currentState = AIState.Recovering;
             stateTimer = recoveryTime;
+            _punch_1.EndDealDamage();
+            _punch_2.EndDealDamage();
         }
     }
 
     public void TakeDamage()
     {
-        if (currentState == AIState.Holding)
-        {
-            // Giảm damage khi đang hold
-            // Có thể thêm logic counter ở đây
-            animator.SetTrigger("BlockImpact");
-        }
-        else
-        {
-            ChangeAnimation(Constant.ANIM_HEAD_HURT, 0.1f, 0.1f);
-        }
+        
+
+        if (isHurting)
+            return;
+
+        Debug.LogError("Take Damage");
+        isHurting = true;
+        ChangeAnimation(Constant.ANIM_HEAD_HURT, 0.1f, 0.1f);
+        //if (currentState == AIState.Holding)
+        //{
+        //    // Giảm damage khi đang hold
+        //    // Có thể thêm logic counter ở đây
+        //    animator.SetTrigger("BlockImpact");
+        //}
+        //else
+        //{
+
+        //}
     }
 
     public void ChangeAnimation(string animation, float crossFade = 0.2f, float time = 0)
@@ -194,10 +212,31 @@ public class Enemy : MonoBehaviour
         {
             if (currentAnimation != animation)
             {
+                
                 currentAnimation = animation;
 
                 animator.CrossFade(animation, crossFade);
             }
+        }
+    }
+
+    private Coroutine CorAnimationCallBack;
+
+    public void OnRecovery(float timeDelay)
+    {
+        if (CorAnimationCallBack != null)
+        {
+            return;
+        }
+
+        CorAnimationCallBack = StartCoroutine(IERecovery());
+
+        IEnumerator IERecovery()
+        {
+            yield return new WaitForSeconds(timeDelay);
+            isHurting = false;
+            ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+            CorAnimationCallBack = null;
         }
     }
 }

@@ -66,17 +66,17 @@ public class PlayerBoxer : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        if (isBlocking)
-        {
-            ; // giảm một nửa sát thương khi đang block
-            hp -= damage / 2;
-        }
-        else
-        {
-            // change hurt animation
+        //if (isBlocking)
+        //{
+        //    ; // giảm một nửa sát thương khi đang block
+        //    hp -= damage / 2;
+        //}
+        //else
+        //{
+        //    // change hurt animation
 
-            hp -= damage;
-        }
+        //    hp -= damage;
+        //}
         
         if(hp > 0)
         {
@@ -107,6 +107,7 @@ public class PlayerBoxer : MonoBehaviour
             yield return new WaitForSeconds(0.25f);
             isHurting = false;
             CorHurting = null;
+            ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
         }
     }
 
@@ -154,7 +155,7 @@ public class PlayerBoxer : MonoBehaviour
         IEnumerator IEAttackCallBack()
         {
             yield return new WaitForSeconds(timeDelay);
-            Debug.LogError("OnAttackCallBack " + currentComboIndex);
+            //Debug.LogError("OnAttackCallBack " + currentComboIndex);
 
             isWaitingAttack = false;
 
@@ -176,9 +177,6 @@ public class PlayerBoxer : MonoBehaviour
                 ComboAttack();
             }
 
-            _rightPunch.EndDealDamage();
-            _leftPunch.EndDealDamage();
-
             CorAttackCallBack = null;
         }
     }
@@ -197,23 +195,27 @@ public class PlayerBoxer : MonoBehaviour
 
         PlayComboAnim(currentComboIndex);
 
-        _rightPunch.StartDealDamage();
-        _leftPunch.StartDealDamage();
+
 
     }
 
     IEnumerator IEStopCombo()
     {
-        Debug.LogError("ComboAttack end " + currentComboIndex);
+        //Debug.LogError("ComboAttack end " + currentComboIndex);
         yield return new WaitForSeconds(0.1f);
         ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
         currentComboIndex = 0;
         isAttacking = false;
         isWaitingAttack = false;
+        _rightPunch.EndDealDamage();
+        _leftPunch.EndDealDamage();
     }
 
     private void PlayComboAnim(int index)
     {
+        _rightPunch.StartDealDamage();
+        _leftPunch.StartDealDamage();
+
         switch (index)
         {
             case 0:

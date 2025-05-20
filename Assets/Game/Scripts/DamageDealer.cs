@@ -5,6 +5,8 @@ using UnityEngine;
 public class DamageDealer : MonoBehaviour
 {
     bool canDealDamage;
+    [SerializeField] private bool isEnemy = false;
+
     List<GameObject> hasDealtDamage;
 
     [SerializeField] float weaponLength;
@@ -31,11 +33,16 @@ public class DamageDealer : MonoBehaviour
 
                 Debug.Log("Hit enemy: " + hit.collider.gameObject.name);
                 GameObject enemy = hit.collider.gameObject;
-                if (!hasDealtDamage.Contains(enemy))
+
+                if (!isEnemy)
                 {
-                    hasDealtDamage.Add(enemy);
-                    //enemy.GetComponent<Enemy>().TakeDamage(weaponDamage);
+                    enemy.GetComponent<Enemy>().TakeDamage();
                 }
+                else
+                {
+                    enemy.GetComponent<PlayerBoxer>().TakeDamage(5);
+                }
+                
                 
             }
         }
