@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class TouchController : MonoBehaviour
+public class TouchController : ScreenBase
 {
     //public PlayerBoxer boxer;
     public bool isHolding = false;
