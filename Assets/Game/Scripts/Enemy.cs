@@ -1,194 +1,206 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Data;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    public enum AIState
-    {
-        Idle,
-        Attacking,
-        Holding,
-        Recovering
-    }
 
-    public AIState currentState = AIState.Idle;
-
-    [Header("CombatSettings")]
-    public float attackRange = 2f;
-    public float holdDuration = 1.5f;
-    public float recoveryTime = 0.8f;
-    public float decisionInterval = 0.5f;
-
-    [Header("Attack Probabilities")]
-    [Range(0, 1)] public float holdChance = 0.3f;
-    [Range(0, 1)] public float attack1Chance = 0.5f;
-    [Range(0, 1)] public float attack2Chance = 0.3f;
-    [Range(0, 1)] public float attack3Chance = 0.2f;
-
-    private Transform player;
-    [SerializeField] private Animator animator;
-    private float stateTimer;
-    private float decisionTimer;
     private string currentAnimation = string.Empty;
 
-    [SerializeField] private DamageDealer _punch_1;
-    [SerializeField] private DamageDealer _punch_2;
+    [SerializeField] private DamageDealerEnemy _punch_1;
+    [SerializeField] private DamageDealerEnemy _punch_2;
+    [SerializeField] private Animator animator;
 
     private bool isHurting = false;
-    void Start()
+    private bool isHolding = false;
+
+    private bool isDead = false;
+    private bool isWaitingAttack = false;
+    private bool isAttacking = false;
+    private int currentComboIndex = 0;
+
+    public float attackProbability = 0.6f;
+    public float blockProbability = 0.3f;
+    public float hp;
+    public float maxHp = 100f;
+
+
+    private Coroutine CorStopCombo;
+    private Coroutine CorAttackCallBack;
+    private Coroutine CorHurting;
+
+    private void Start()
     {
-        player = GameController.Instance.playerBoxer.transform;
-        decisionTimer = decisionInterval;
+        hp = maxHp;
+        currentComboIndex = 0;
+        isAttacking = false;
+        isWaitingAttack = false;
+        isHolding = false;
+        isDead = false;
+        isHurting = false;
     }
 
-    void Update()
+    public void TakeDamage(float damage)
     {
-        decisionTimer -= Time.deltaTime;
-
-        if (decisionTimer <= 0 && currentState == AIState.Idle)
-        {
-            MakeDecision();
-            decisionTimer = decisionInterval;
-        }
-
-        UpdateState();
-    }
-
-    void MakeDecision()
-    {
-        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-
-        if (distanceToPlayer <= attackRange)
-        {
-            if (Random.value < holdChance)
-            {
-                EnterHoldState();
-            }
-            else
-            {
-                ChooseAttack();
-            }
-        }
-    }
-
-    void ChooseAttack()
-    {
-        float attackChoice = Random.value;
-
-        if (attackChoice < attack1Chance)
-        {
-            ExecuteAttack(1);
-        }
-        else if (attackChoice < attack1Chance + attack2Chance)
-        {
-            ExecuteAttack(2);
-        }
-        else
-        {
-            ExecuteAttack(3);
-        }
-    }
-    void ExecuteAttack(int attackType)
-    {
-        currentState = AIState.Attacking;
-        _punch_1.StartDealDamage();
-        _punch_2.StartDealDamage();
-        switch (attackType)
-        {
-            case 1:
-                ChangeAnimation(Constant.ANIM_KIDNEY_PUNCH_LEFT, 0.1f, 0.1f);
-                break;
-            case 2:
-                ChangeAnimation(Constant.ANIM_KIDNEY_PUNCH_RIGHT, 0.1f, 0.1f);
-                break;
-            case 3:
-                ChangeAnimation(Constant.ANIM_PUNCH_STOMASH, 0.1f, 0.1f);
-                break;
-        }
-
-        // Thời gian recovery khác nhau cho mỗi đòn
-        stateTimer = attackType switch
-        {
-            1 => 0.5f,
-            2 => 0.7f,
-            3 => 1f,
-            _ => 0.5f
-        };
-    }
-
-    void EnterHoldState()
-    {
-        currentState = AIState.Holding;
-        //animator.SetBool("IsHolding", true);
-        ChangeAnimation(Constant.ANIM_BLOCK, 0.1f, 0.1f);
-        stateTimer = holdDuration;
-    }
-
-    void ExitHoldState()
-    {
-        ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
-        currentState = AIState.Recovering;
-        stateTimer = recoveryTime;
-    }
-
-    void UpdateState()
-    {
-
-        if (currentState == AIState.Holding || currentState == AIState.Attacking || currentState == AIState.Recovering)
-        {
-            stateTimer -= Time.deltaTime;
-
-            if (stateTimer <= 0)
-            {
-                switch (currentState)
-                {
-                    case AIState.Holding:
-                        ExitHoldState();
-                        break;
-                    case AIState.Recovering:
-                        currentState = AIState.Idle;
-                        break;
-                    case AIState.Attacking:
-                        currentState = AIState.Recovering;
-                        stateTimer = recoveryTime;
-                        break;
-                }
-            }
-        }
-    }
-
-    public void OnAttackComplete()
-    {
-        if (currentState == AIState.Attacking)
-        {
-            currentState = AIState.Recovering;
-            stateTimer = recoveryTime;
-            _punch_1.EndDealDamage();
-            _punch_2.EndDealDamage();
-        }
-    }
-
-    public void TakeDamage()
-    {
-        
 
         if (isHurting)
             return;
 
+        if (isHolding)
+        {
+            OnHurt(damage / 2f);
+        }
+        else
+        {
+            OnHurt(damage);
+        }
+    }
+    public void Die()
+    {
+        isDead = true;
+        ChangeAnimation(Constant.ANIM_DEATH, 0.1f, 0.1f);
+    }
+    private void OnHurt(float damage)
+    {
+        hp -= damage;
+
+        if (hp <= 0)
+        {
+            Die();
+            return;
+        }
+
         Debug.LogError("Take Damage");
         isHurting = true;
         ChangeAnimation(Constant.ANIM_HEAD_HURT, 0.1f, 0.1f);
-        //if (currentState == AIState.Holding)
-        //{
-        //    // Giảm damage khi đang hold
-        //    // Có thể thêm logic counter ở đây
-        //    animator.SetTrigger("BlockImpact");
-        //}
-        //else
-        //{
 
-        //}
+        if (CorHurting != null)
+        {
+            StopCoroutine(CorHurting);
+            CorHurting = null;
+        }
+
+        CorHurting = StartCoroutine(IEHurt());
+
+        IEnumerator IEHurt()
+        {
+            yield return new WaitForSeconds(0.25f);
+            isHurting = false;
+            CorHurting = null;
+            ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+        }
+    }
+
+    private void Update()
+    {
+        if(isDead) return;
+
+        if (isHurting) return;
+
+        if (isAttacking) return;
+
+        MakeDecision();
+    }
+
+
+    private void MakeDecision()
+    {
+        float randomValue = Random.value;
+
+        //Debug.LogError("MakeDecision " + randomValue);
+
+        if (randomValue < attackProbability)
+        {
+            // attack
+            Debug.LogError("Attacking " + randomValue);
+            OnAttack();
+        }
+        else if (randomValue < attackProbability + blockProbability) 
+        { 
+            // block        
+            HandleBlocking(true);
+        }
+    }
+
+    private void HandleBlocking(bool isBlock)
+    {
+        
+        if (isDead || isHurting) return;
+        if (isAttacking) return;
+        isHolding = isBlock;
+        if (isBlock)
+        {
+            ChangeAnimation(Constant.ANIM_BLOCK, 0.1f, 0.1f);
+        }
+        else
+        {
+            ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+        }
+    }
+
+    public void OnAttack()
+    {
+        if (isDead || isHurting) return;
+        isHolding = false;
+        isAttacking = true;
+        if (!isWaitingAttack)
+        {
+            if (isAttacking)
+            {
+                isWaitingAttack = true;
+
+                if (CorStopCombo != null)
+                {
+                    StopCoroutine(CorStopCombo);
+                    CorStopCombo = null;
+                }
+
+                // combo attack
+                ComboAttack();
+            }
+        }
+    }
+
+    private void ComboAttack()
+    {
+        if (isHolding)
+        {
+            isAttacking = false;
+            isWaitingAttack = false;
+            return;
+        }
+
+        //Debug.LogError("ComboAttack " + currentComboIndex);
+        isAttacking = false;
+        currentComboIndex++;
+
+        if (currentComboIndex > 2)
+        {
+            currentComboIndex = 0;
+        }
+
+        PlayComboAnim(currentComboIndex);
+    }
+
+    private void PlayComboAnim(int index)
+    {
+        _punch_1.StartDealDamage();
+        _punch_2.StartDealDamage();
+
+        switch (index)
+        {
+            case 0:
+                ChangeAnimation(Constant.ANIM_KIDNEY_PUNCH_LEFT, 0.1f, 0.1f);
+                break;
+            case 1:
+                ChangeAnimation(Constant.ANIM_KIDNEY_PUNCH_RIGHT, 0.1f, 0.1f);
+                break;
+            case 2:
+                ChangeAnimation(Constant.ANIM_PUNCH_STOMASH, 0.1f, 0.1f);
+                break;
+        }
     }
 
     public void ChangeAnimation(string animation, float crossFade = 0.2f, float time = 0)
@@ -218,6 +230,57 @@ public class Enemy : MonoBehaviour
                 animator.CrossFade(animation, crossFade);
             }
         }
+    }
+
+    public void OnAttackCallBack(float timeDelay)
+    {
+        if (CorAttackCallBack != null)
+        {
+            return;
+        }
+
+
+        CorAttackCallBack = StartCoroutine(IEAttackCallBack());
+
+        IEnumerator IEAttackCallBack()
+        {
+            yield return new WaitForSeconds(timeDelay);
+            //Debug.LogError("OnAttackCallBack " + currentComboIndex);
+
+            isWaitingAttack = false;
+
+            if (!isAttacking)
+            {
+
+                if (CorStopCombo != null)
+                {
+                    StopCoroutine(CorStopCombo);
+                    CorStopCombo = null;
+                }
+
+                CorStopCombo = StartCoroutine(IEStopCombo());
+            }
+            else
+            {
+                isWaitingAttack = true;
+                // combo attack
+                ComboAttack();
+            }
+
+            CorAttackCallBack = null;
+        }
+    }
+
+    IEnumerator IEStopCombo()
+    {
+        //Debug.LogError("ComboAttack end " + currentComboIndex);
+        yield return new WaitForSeconds(0.1f);
+        ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+        currentComboIndex = 0;
+        isAttacking = false;
+        isWaitingAttack = false;
+        _punch_1.EndDealDamage();
+        _punch_2.EndDealDamage();
     }
 
     private Coroutine CorAnimationCallBack;

@@ -2,10 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DamageDealer : MonoBehaviour
+public class DamageDealerEnemy : MonoBehaviour
 {
     bool canDealDamage;
-    [SerializeField] private bool isEnemy = false;
 
     List<GameObject> hasDealtDamage;
 
@@ -27,18 +26,16 @@ public class DamageDealer : MonoBehaviour
         if (canDealDamage)
         {
             RaycastHit hit;
-            int layerMask = 1 << 9;
+            int layerMask = 1 << 10;
             if (Physics.Raycast(transform.position, transform.forward, out hit, weaponLength, layerMask))
             {
-
-                Debug.Log("Hit enemy: " + hit.collider.gameObject.name);
                 GameObject enemy = hit.collider.gameObject;
 
-                enemy.GetComponent<Enemy>().TakeDamage(5);
+                enemy.GetComponent<PlayerBoxer>().TakeDamage(5);
+
             }
         }
     }
-
     public void StartDealDamage()
     {
         canDealDamage = true;

@@ -7,7 +7,7 @@ public class OnFinishEnemy : StateMachineBehaviour
     // OnStateEnter is called when a transition starts and the state machine starts to evaluate this state
     override public void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
     {
-        animator.transform.parent.GetComponent<Enemy>().OnRecovery(stateInfo.length);
+        animator.transform.parent.GetComponent<Enemy>().OnAttackCallBack(stateInfo.length);
     }
 
     // OnStateUpdate is called on each Update frame between OnStateEnter and OnStateExit callbacks

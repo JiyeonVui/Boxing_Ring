@@ -66,33 +66,37 @@ public class PlayerBoxer : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        //if (isBlocking)
-        //{
-        //    ; // giảm một nửa sát thương khi đang block
-        //    hp -= damage / 2;
-        //}
-        //else
-        //{
-        //    // change hurt animation
+        Debug.LogError("Take Damage " + damage);
+        if(isHurting)
+            return;
 
-        //    hp -= damage;
-        //}
-        
-        if(hp > 0)
+        if (isBlocking)
         {
-            OnHurt();
+            OnHurt(damage /2f);
         }
         else
         {
-            Die();
+            OnHurt(damage);
         }
     }
 
-    public void OnHurt()
+    public void OnHurt(float dame)
     {
-        // change hurt animation
+
+        hp -= dame;
+
+        if (hp <= 0)
+        {
+            Die();
+            return;
+        }
+
         isHurting = true;
-        ChangeAnimation(Constant.ANIM_HEAD_HURT, 0.1f, 0.1f);
+        if (!isBlocking)
+        {
+            ChangeAnimation(Constant.ANIM_HEAD_HURT, 0.1f, 0.1f);
+        }
+
 
         if(CorHurting != null)
         {
@@ -107,7 +111,10 @@ public class PlayerBoxer : MonoBehaviour
             yield return new WaitForSeconds(0.25f);
             isHurting = false;
             CorHurting = null;
-            ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+            if (!isBlocking)
+            {
+                ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+            }
         }
     }
 
@@ -184,6 +191,13 @@ public class PlayerBoxer : MonoBehaviour
 
     private void ComboAttack()
     {
+        if(isBlocking)
+        {
+            isAttacking = false;
+            isWaitingAttack = false;
+            return;
+        }
+
         Debug.LogError("ComboAttack " + currentComboIndex);
         isAttacking = false;
         currentComboIndex++;
@@ -194,9 +208,6 @@ public class PlayerBoxer : MonoBehaviour
         }
 
         PlayComboAnim(currentComboIndex);
-
-
-
     }
 
     IEnumerator IEStopCombo()
@@ -244,33 +255,6 @@ public class PlayerBoxer : MonoBehaviour
         }
     }
 
-    public void MoveInDirection(Vector2 touchDir)
-    {
-        if(isDead) return;
-
-        Vector3 camForward = mainCam.transform.forward;
-        camForward.y = 0;
-        camForward.Normalize();
-
-        Vector3 camRight = mainCam.transform.right;
-        camRight.y = 0;
-        camRight.Normalize();
-
-        moveDir = camRight * touchDir.x + camForward * touchDir.y;
-        transform.position += moveDir * moveSpeed * Time.deltaTime;
-
-        if (moveDir != Vector3.zero)
-        {
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(moveDir), 0.2f);
-        }
-
-        if(!isMoving)
-        {
-            isMoving = true;
-            ChangeAnimation(Constant.ANIM_RUNNING, 0f, 0.1f);
-        }
-            
-    }
 
 
     public void ChangeAnimation(string animation, float crossFade = 0.2f, float time = 0)
