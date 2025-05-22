@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using DG.Tweening;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -9,9 +10,6 @@ public class PlayerBoxer : MonoBehaviour
     public float moveSpeed = 2f;
     public Animator animator;
     public Camera mainCam;
-    public Transform[] enemies;
-
-    private Vector3 moveDir;
 
     private bool isBlocking = false;
 
@@ -20,7 +18,6 @@ public class PlayerBoxer : MonoBehaviour
     public int maxCombo = 3;
 
 
-    private bool isMoving = false;
     private string currentAnimation = string.Empty;
 
     private int currentComboIndex = 0;
@@ -43,13 +40,21 @@ public class PlayerBoxer : MonoBehaviour
     [SerializeField] private DamageDealer _leftPunch;
 
 
-
-    private void Start()
+    [Header("Time Intro")]
+    [SerializeField] private List<Transform> pathList;
+    [SerializeField] private float time_1 = 3f;
+    [SerializeField] private float time_2 = 3f;
+    public void Init()
     {
         _rightPunch.SetWeaponDamage(attackDamage);
         _leftPunch.SetWeaponDamage(attackDamage);
         hp = maxHp;
         isDead = false;
+        isHurting = false;
+        currentComboIndex = 0;
+
+        isAttacking = false;
+        isWaitingAttack = false;
     }
 
     private void Awake()
@@ -283,5 +288,24 @@ public class PlayerBoxer : MonoBehaviour
                 animator.CrossFade(animation, crossFade);
             }
         }
+    }
+
+    public void Move()
+    {
+
+        ChangeAnimation(Constant.ANIM_WALK, 0.1f, 0.1f);
+        transform.DORotate(new Vector3(0f, 56f, 0f), time_1, RotateMode.Fast);
+        transform.DOMove(pathList[0].position, time_1).OnComplete(() =>
+        {
+            ChangeAnimation(Constant.ANIM_JUMPTOBOXINGRING, 0.1f, 0.1f);
+            transform.DOMove(pathList[1].position, 1.5f).OnComplete(() =>
+            {
+                transform.DOMove(pathList[2].position, animator.GetCurrentAnimatorStateInfo(0).length - 1.5f).SetDelay(0.5f).OnComplete(() =>
+                {
+                    ChangeAnimation(Constant.ANIM_WALK, 0.1f, 0.1f);
+                    transform.DOMove(pathList[3].position, 2f);
+                });
+            });
+        });
     }
 }

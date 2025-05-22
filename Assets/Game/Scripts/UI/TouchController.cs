@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,9 +12,16 @@ public class TouchController : ScreenBase
 
     [SerializeField] private Button _btnHold;
     [SerializeField] private Button _btnAttack;
+    [SerializeField] private CanvasGroup _uiCv;
+    [SerializeField] private TextMeshProUGUI _countDownText;
+    [SerializeField] private GameObject _blackMaskObj;
 
-    private void Start()
+    private Coroutine _corCountDown;
+    public override void OnInit()
     {
+        base.OnInit();
+        _uiCv.SetActive(false);
+        _blackMaskObj.SetActive(true);
         _btnAttack.onClick.AddListener(() =>
         {
             if (isHolding)
@@ -23,7 +31,33 @@ public class TouchController : ScreenBase
 
             GameController.attackAction?.Invoke();
         });
+        
+    }
 
+    public override void OnShow()
+    {
+        base.OnShow();
+        if(_corCountDown != null)
+        {
+            StopCoroutine(_corCountDown);
+        }
+
+        _corCountDown = StartCoroutine(IECountDown());
+    }
+
+    private IEnumerator IECountDown()
+    {
+        _countDownText.SetText("3");
+        yield return new WaitForSeconds(0.8f);
+        _countDownText.SetText("2");
+        yield return new WaitForSeconds(0.8f);
+        _countDownText.SetText("1");
+        yield return new WaitForSeconds(0.8f);
+        _countDownText.SetText("Go");
+        yield return new WaitForSeconds(0.5f);
+        _uiCv.SetActive(true);
+        _blackMaskObj.SetActive(false);
+        GameController.Instance.BattleStart();
     }
 
     public void OnHold()
@@ -36,87 +70,6 @@ public class TouchController : ScreenBase
     {
         isHolding = false;
         GameController.holdAction?.Invoke(isHolding);
-    }
-
-    void Update()
-    {
-        //if (Input.touchCount == 0)
-        //{
-        //    isMoving = false;
-        //    return;
-        //}
-
-        //Touch touch = Input.GetTouch(0);
-
-        //switch (touch.phase)
-        //{
-        //    case TouchPhase.Began:
-        //        touchStartTime = Time.time;
-        //        break;
-
-        //    case TouchPhase.Stationary:
-
-        //        if (!isMoving)
-        //        {
-        //            float holdDuration = Time.time - touchStartTime;
-
-        //            if (holdDuration > touchTimeThreshold && !isHolding)
-        //            {
-        //                if (dynamicJoystick.Direction.magnitude < 0.1f)
-        //                {
-        //                    isHolding = true;
-        //                    GameController.holdAction?.Invoke(isHolding);
-        //                }
-        //                else
-        //                {
-        //                    isHolding = false;
-        //                    //GameController.holdAction?.Invoke(isHolding);
-        //                }
-        //            }
-        //        }
-
-        //        break;
-
-        //    case TouchPhase.Moved:
-        //        //Debug.Log("MoveThreshold " + dynamicJoystick.MoveThreshold);
-        //        if (dynamicJoystick.Direction.magnitude > 0.1f)
-        //        {
-        //            isMoving = true;
-        //            Debug.Log("MoveThreshold " + dynamicJoystick.MoveThreshold);
-        //        }
-        //        break;
-
-        //    case TouchPhase.Ended:
-
-        //        if (!isMoving && !isHolding)
-        //        {
-        //            GameController.attackAction?.Invoke();
-        //        }
-
-
-        //        if(isHolding)
-        //        {
-        //            isHolding = false;
-        //            GameController.holdAction?.Invoke(isHolding);
-        //        }
-        //        if (isMoving)
-        //        {
-        //            Debug.LogError("stop action moving");
-        //            isMoving = false;
-        //            GameController.stopAction?.Invoke();
-        //        }
-        //        break;
-        //}
-
-        //if (isMoving)
-        //{
-        //    Vector2 dir = dynamicJoystick.Direction * dynamicJoystick.MoveThreshold;
-        //    if (dynamicJoystick.MoveThreshold < 0.25f)
-        //    {
-        //        dir = Vector2.zero;
-        //    }
-        //    GameController.movingAction?.Invoke(dir);
-        //}
     }
 }
 

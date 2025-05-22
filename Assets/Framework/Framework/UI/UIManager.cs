@@ -30,6 +30,7 @@ public class UIManager : MonoSingleton<UIManager>
         OnInit();
 
         //ShowScreen<ScreenMenuMode>();
+        ShowScreen<ScreenMenu>();
         AudioManager.Instance.PlayMusic(AudioType.BG_MUSIC);
     }
 

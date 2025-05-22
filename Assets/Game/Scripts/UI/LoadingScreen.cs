@@ -56,6 +56,10 @@ public class LoadingScene : MonoSingleton<LoadingScene>
         bar.DOFillAmount(1, time).OnComplete(() => StartCoroutine(CompleteSlider(callback, asyncOperation))).OnUpdate(() =>
         {
             percentText.text = $"{(int)(bar.fillAmount * 100)}%";
+
+        }).OnComplete(() =>
+        {
+            asyncOperation.allowSceneActivation = true;
         });
 
     }

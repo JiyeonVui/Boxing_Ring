@@ -6,8 +6,12 @@ using UnityEngine;
 public class FPSDisplay : MonoBehaviour
 {
 	float deltaTime = 0.0f;
- 
-	void Update()
+
+    private void Awake()
+    {
+        DontDestroyOnLoad(this.gameObject);
+    }
+    void Update()
 	{
 		deltaTime += (Time.deltaTime - deltaTime) * 0.1f;
 	}

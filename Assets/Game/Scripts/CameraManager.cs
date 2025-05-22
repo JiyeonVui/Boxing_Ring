@@ -1,18 +1,21 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CameraManager : MonoBehaviour
+public class CameraManager : MonoSingleton<CameraManager>
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+    [SerializeField] private Animator _cameraAnimator;
 
-    // Update is called once per frame
-    void Update()
+    public void PlayIntro(Action callback = null)
     {
-        
+        _cameraAnimator.CrossFade("Intro", 0.1f);
+        StartCoroutine(IEWaitIntro());
+
+        IEnumerator IEWaitIntro()
+        {
+            yield return new WaitForSeconds(8f);
+            callback?.Invoke();
+        }
     }
 }

@@ -15,7 +15,7 @@ public class Enemy : MonoBehaviour
 
     private bool isHurting = false;
     private bool isHolding = false;
-
+    private bool isBattle = false;
     private bool isDead = false;
     private bool isWaitingAttack = false;
     private bool isAttacking = false;
@@ -31,7 +31,9 @@ public class Enemy : MonoBehaviour
     private Coroutine CorAttackCallBack;
     private Coroutine CorHurting;
 
-    private void Start()
+
+
+    public void Init()
     {
         hp = maxHp;
         currentComboIndex = 0;
@@ -40,6 +42,12 @@ public class Enemy : MonoBehaviour
         isHolding = false;
         isDead = false;
         isHurting = false;
+        isBattle = false;
+    }
+
+    public void Fight()
+    {
+        isBattle = true;
     }
 
     public void TakeDamage(float damage)
@@ -100,6 +108,8 @@ public class Enemy : MonoBehaviour
         if (isHurting) return;
 
         if (isAttacking) return;
+
+        if (!isBattle) return;
 
         MakeDecision();
     }
