@@ -14,15 +14,8 @@ public class ScreenMenu : ScreenBase
         base.OnInit();
         _btnSolo.onClick.AddListener(() =>
         {
-            GameController.Instance.InitSolo(() =>
-            {
-                OnHide();
-                CameraManager.Instance.PlayIntro(() =>
-                {
-                    // countdown
-                    UIManager.Instance.ShowScreen<TouchController>();
-                });
-            });
+            OnHide();
+            UIManager.Instance.ShowScreen<ScreenLevel>();   
         });
 
     }

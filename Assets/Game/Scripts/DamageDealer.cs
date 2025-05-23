@@ -10,6 +10,7 @@ public class DamageDealer : MonoBehaviour
     List<GameObject> hasDealtDamage;
 
     [SerializeField] float weaponLength;
+    [SerializeField] private ParticleSystem _bloodFX;
     float weaponDamage;
     private void Start()
     {
@@ -33,7 +34,7 @@ public class DamageDealer : MonoBehaviour
 
                 Debug.Log("Hit enemy: " + hit.collider.gameObject.name);
                 GameObject enemy = hit.collider.gameObject;
-
+                bool isBlood = false;
                 enemy.GetComponent<Enemy>().TakeDamage(5);
             }
         }

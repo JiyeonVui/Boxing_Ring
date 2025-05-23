@@ -26,11 +26,13 @@ public class PlayerBoxer : MonoBehaviour
     private bool isWaitingAttack = false;
     private Coroutine CorStopCombo;
     private Coroutine CorHurting;
+    private Coroutine CorAttackCallBack;
+
 
 
     private bool isDead = false;
     private bool isHurting = false;
-
+    private bool isWin = false;
 
     [Header("Player Parameters")]
     [SerializeField] private float hp;
@@ -44,6 +46,7 @@ public class PlayerBoxer : MonoBehaviour
     [SerializeField] private List<Transform> pathList;
     [SerializeField] private float time_1 = 3f;
     [SerializeField] private float time_2 = 3f;
+
     public void Init()
     {
         _rightPunch.SetWeaponDamage(attackDamage);
@@ -51,14 +54,20 @@ public class PlayerBoxer : MonoBehaviour
         hp = maxHp;
         isDead = false;
         isHurting = false;
+        isWin = false;
         currentComboIndex = 0;
 
         isAttacking = false;
         isWaitingAttack = false;
-    }
+
+        CorStopCombo = null;
+        CorHurting = null;
+        CorAttackCallBack = null;
+}
 
     private void Awake()
     {
+        Debug.LogError("Register listener");
         GameController.attackAction += OnAttackInput;
         GameController.holdAction += HandleBlocking;
     }
@@ -77,7 +86,7 @@ public class PlayerBoxer : MonoBehaviour
 
         if (isBlocking)
         {
-            OnHurt(damage /2f);
+            OnHurt(1f);
         }
         else
         {
@@ -89,6 +98,8 @@ public class PlayerBoxer : MonoBehaviour
     {
 
         hp -= dame;
+
+        GameController.Instance.UpdateHpPlayer(hp / maxHp);
 
         if (hp <= 0)
         {
@@ -116,7 +127,7 @@ public class PlayerBoxer : MonoBehaviour
             yield return new WaitForSeconds(0.25f);
             isHurting = false;
             CorHurting = null;
-            if (!isBlocking)
+            if (!isBlocking && !isDead)
             {
                 ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
             }
@@ -126,14 +137,20 @@ public class PlayerBoxer : MonoBehaviour
     public void Die()
     {
         isDead = true;
-        ChangeAnimation(Constant.ANIM_DEATH, 0.1f, 0.1f);
+        DOVirtual.DelayedCall(0.5f, () =>
+        {
+            Debug.LogError("DEath");
+            ChangeAnimation(Constant.ANIM_DEATH, 0.1f, 0.1f);
+        });
+
+        GameController.Instance.CheckBattleResult(false);
     }
 
 
 
     public void OnAttackInput()
     {
-        if (isDead || isHurting) return;
+        if (isDead || isHurting || isWin) return;
         isAttacking = true;
         if (!isWaitingAttack)
         {
@@ -152,8 +169,7 @@ public class PlayerBoxer : MonoBehaviour
             }
         }
     }
-    private Coroutine CorAttackCallBack;
-
+    
     public void OnAttackCallBack(float timeDelay)
     {
         if (CorAttackCallBack != null)
@@ -180,7 +196,11 @@ public class PlayerBoxer : MonoBehaviour
                     CorStopCombo = null;
                 }
 
-                CorStopCombo = StartCoroutine(IEStopCombo());
+
+                if (!isDead && !isWin)
+                {
+                    CorStopCombo = StartCoroutine(IEStopCombo());
+                }
             }
             else
             {
@@ -248,7 +268,7 @@ public class PlayerBoxer : MonoBehaviour
 
     private void HandleBlocking(bool isBlock)
     {
-        if (isDead || isHurting) return;
+        if (isDead || isHurting || isWin) return;
         isBlocking = isBlock;
         if (isBlock)
         {
@@ -260,7 +280,15 @@ public class PlayerBoxer : MonoBehaviour
         }
     }
 
-
+    public void OnWin()
+    {
+        isWin = true;
+        StopAllCoroutines();
+        DOVirtual.DelayedCall(0.5f, () =>
+        {
+            ChangeAnimation(Constant.ANIM_VICTORY, 0.1f, 0.1f);
+        });
+    }
 
     public void ChangeAnimation(string animation, float crossFade = 0.2f, float time = 0)
     {
@@ -290,22 +318,4 @@ public class PlayerBoxer : MonoBehaviour
         }
     }
 
-    public void Move()
-    {
-
-        ChangeAnimation(Constant.ANIM_WALK, 0.1f, 0.1f);
-        transform.DORotate(new Vector3(0f, 56f, 0f), time_1, RotateMode.Fast);
-        transform.DOMove(pathList[0].position, time_1).OnComplete(() =>
-        {
-            ChangeAnimation(Constant.ANIM_JUMPTOBOXINGRING, 0.1f, 0.1f);
-            transform.DOMove(pathList[1].position, 1.5f).OnComplete(() =>
-            {
-                transform.DOMove(pathList[2].position, animator.GetCurrentAnimatorStateInfo(0).length - 1.5f).SetDelay(0.5f).OnComplete(() =>
-                {
-                    ChangeAnimation(Constant.ANIM_WALK, 0.1f, 0.1f);
-                    transform.DOMove(pathList[3].position, 2f);
-                });
-            });
-        });
-    }
 }

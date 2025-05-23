@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using DG.Tweening;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using Unity.VisualScripting;
@@ -17,6 +18,8 @@ public class Enemy : MonoBehaviour
     private bool isHolding = false;
     private bool isBattle = false;
     private bool isDead = false;
+    private bool isWin = false;
+
     private bool isWaitingAttack = false;
     private bool isAttacking = false;
     private int currentComboIndex = 0;
@@ -33,7 +36,7 @@ public class Enemy : MonoBehaviour
 
 
 
-    public void Init()
+    public void Init(int difficulty)
     {
         hp = maxHp;
         currentComboIndex = 0;
@@ -43,6 +46,16 @@ public class Enemy : MonoBehaviour
         isDead = false;
         isHurting = false;
         isBattle = false;
+        isWin = false;
+
+        CorStopCombo = null;
+        CorAttackCallBack = null;
+        CorHurting = null;
+
+        difficulty = Mathf.Clamp(difficulty, 1, 10);
+
+        attackProbability = Mathf.Lerp(0.2f, 0.7f, difficulty / 10f);
+        blockProbability = Mathf.Lerp(0.3f, 0.2f, difficulty / 10f);
     }
 
     public void Fight()
@@ -52,7 +65,6 @@ public class Enemy : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-
         if (isHurting)
             return;
 
@@ -68,14 +80,22 @@ public class Enemy : MonoBehaviour
     public void Die()
     {
         isDead = true;
-        ChangeAnimation(Constant.ANIM_DEATH, 0.1f, 0.1f);
+        DOVirtual.DelayedCall(0.5f, () =>
+        {
+            ChangeAnimation(Constant.ANIM_DEATH, 0.1f, 0.1f);
+        });
+        StopAllCoroutines();
+        GameController.Instance.CheckBattleResult(true);
     }
     private void OnHurt(float damage)
     {
         hp -= damage;
 
+        GameController.Instance.UpdateHpEnemy(hp / maxHp);
+
         if (hp <= 0)
         {
+
             Die();
             return;
         }
@@ -97,7 +117,11 @@ public class Enemy : MonoBehaviour
             yield return new WaitForSeconds(0.25f);
             isHurting = false;
             CorHurting = null;
-            ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+            if(!isDead)
+            {
+                ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
+            }
+                
         }
     }
 
@@ -110,6 +134,8 @@ public class Enemy : MonoBehaviour
         if (isAttacking) return;
 
         if (!isBattle) return;
+
+        if(isWin) return;
 
         MakeDecision();
     }
@@ -268,7 +294,11 @@ public class Enemy : MonoBehaviour
                     CorStopCombo = null;
                 }
 
-                CorStopCombo = StartCoroutine(IEStopCombo());
+                if(!isDead && !isWin)
+                {
+                    CorStopCombo = StartCoroutine(IEStopCombo());
+                }
+
             }
             else
             {
@@ -311,5 +341,16 @@ public class Enemy : MonoBehaviour
             ChangeAnimation(Constant.ANIM_IDLE, 0.1f, 0.1f);
             CorAnimationCallBack = null;
         }
+    }
+
+
+    public void OnWin()
+    {
+        isWin = true;
+        DOVirtual.DelayedCall(0.5f, () =>
+        {
+            ChangeAnimation(Constant.ANIM_VICTORY, 0.1f, 0.1f);
+        });
+
     }
 }

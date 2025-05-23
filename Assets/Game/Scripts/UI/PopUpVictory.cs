@@ -6,16 +6,15 @@ using UnityEngine.UI;
 public class PopUpVictory : PopupBase
 {
     [SerializeField] private Button _btnNext;
-    [SerializeField] private Button _btnBack;
-
     public override void OnInit()
     {
         base.OnInit();
         _btnNext.onClick.AddListener(() =>
         {
+            OnHide();
             GameController.Instance.BattleEnd();
             UIManager.Instance.ShowScreen<ScreenLevel>();
-
         });
     }
+
 }

@@ -22,5 +22,6 @@ public static class Constant
     public const string ANIM_HEAD_HURT = "Head Hit";
     public const string ANIM_DEATH = "Knocked Out";
     public const string ANIM_JUMPTOBOXINGRING = "JumpingOverIntoCombat";
+    public const string ANIM_VICTORY = "Victory";
 
 }

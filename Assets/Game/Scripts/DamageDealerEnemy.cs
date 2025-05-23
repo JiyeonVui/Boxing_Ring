@@ -31,7 +31,10 @@ public class DamageDealerEnemy : MonoBehaviour
             {
                 GameObject enemy = hit.collider.gameObject;
 
-                enemy.GetComponent<PlayerBoxer>().TakeDamage(5);
+                if (enemy.GetComponent<PlayerBoxer>() != null)
+                {
+                    enemy.GetComponent<PlayerBoxer>().TakeDamage(5);
+                }
 
             }
         }

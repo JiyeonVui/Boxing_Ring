@@ -16,6 +16,7 @@ public class DataSaveUser
 
     public List<int> lockIndex = new List<int>();
 
+
 }
 
 public class DataUser : GameData
@@ -73,9 +74,9 @@ public class DataUser : GameData
 
     public void UnlockIndex(int index)
     {
-        if (DataSave.lockIndex.Contains(index))
+        if (!DataSave.lockIndex.Contains(index))
         {
-            DataSave.lockIndex.Remove(index);
+            DataSave.lockIndex.Add(index);
             SaveData();
         }
     }

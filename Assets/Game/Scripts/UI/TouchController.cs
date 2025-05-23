@@ -37,7 +37,8 @@ public class TouchController : ScreenBase
     public override void OnShow()
     {
         base.OnShow();
-        if(_corCountDown != null)
+        _blackMaskObj.SetActive(true);
+        if (_corCountDown != null)
         {
             StopCoroutine(_corCountDown);
         }
